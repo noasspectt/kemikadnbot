@@ -103,10 +103,12 @@ const checkBirthdays = () => {
 
 
   // Botun durumunu ayarla
+  client.once('ready', () => {
+  console.log(`${client.user.tag} başarıyla giriş yaptı!`);
+  checkBirthdays();
   client.user.setPresence({
-    activities: [{ name: '!yardım', type: 2 }], // type: 0 -> Playing
-    
-    status: 'online', // "dnd" -> Rahatsız Etmeyin
+    activities: [{ name: `kemikadn`, type: 3 }],
+    status: 'online',
   });
 });
 
