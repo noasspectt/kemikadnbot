@@ -214,19 +214,26 @@ client.on('messageDelete', async (message) => {
 });
 
 // Oda silme sistemi
-const { activeVoiceRooms } = require('./commands/odaoluştur');
-
 client.on('voiceStateUpdate', async (oldState, newState) => {
   const userId = oldState.member.id;
   const roomId = activeVoiceRooms.get(userId);
   if (!roomId) return;
 
+  // Kullanıcı odaya yeni girdiyse, işlem yapma
+  if (!oldState.channelId && newState.channelId === roomId) return;
+
+  // Kullanıcı odadan çıkıyorsa ve içeride kimse kalmadıysa odayı sil
   if (oldState.channelId === roomId && newState.channelId !== roomId) {
-    const ch = oldState.guild.channels.cache.get(roomId);
-    if (ch) await ch.delete().catch(console.error);
-    activeVoiceRooms.delete(userId);
+    const channel = oldState.guild.channels.cache.get(roomId);
+    if (!channel) return;
+
+    if (channel.members.size === 0) {
+      await channel.delete().catch(console.error);
+      activeVoiceRooms.delete(userId);
+    }
   }
 });
+
 
 // Web sunucusu
 const app = express();
