@@ -81,6 +81,7 @@ client.once('ready', () => {
 const { activeVoiceRooms } = require('./commands/odaoluştur');
 
   // DOĞUM GÜNÜ KONTROLÜ 78
+// Bot hazır olduğunda çalıştırılacak fonksiyon
 const checkBirthdays = () => {
   const today = new Date();
   const gün = today.getDate();
@@ -101,9 +102,8 @@ const checkBirthdays = () => {
   }
 };
 
-
-  // Botun durumunu ayarla
-  client.once('ready', () => {
+// Bot hazır olduğunda yapılacak işlemler
+client.once('ready', () => {
   console.log(`${client.user.tag} başarıyla giriş yaptı!`);
   checkBirthdays();
   client.user.setPresence({
