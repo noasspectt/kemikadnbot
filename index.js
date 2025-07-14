@@ -4,6 +4,8 @@ const express = require('express');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { prefix } = require('./config.json');
 const afk = require('./commands/afk.js');
+const { activeVoiceRooms } = require('./commands/odaoluştur'); // ← Burası
+
 const snipes = new Map();
 
 const loadSettings = () => {
