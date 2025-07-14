@@ -112,27 +112,60 @@ client.on('messageCreate', async (message) => {
 
   const settings = loadSettings();
 
-  // --- Reklam, capslock, küfür engelleri (seninkiyle birebir) ---
-  if (settings.reklamEngel && /(http|www\.)/.test(message.content)) {
-    await message.delete().catch(() => {});
-    return message.channel.send(`${message.author}, reklam yapmak yasaktır!`).catch(console.error);
-  }
-  if (
-    settings.capslockEngel &&
-    message.content.length > 5 &&
-    message.content === message.content.toUpperCase() &&
-    /[A-Z]/.test(message.content)
-  ) {
-    await message.delete().catch(() => {});
-    return message.channel.send(`${message.author}, lütfen tamamen büyük harf kullanmayınız!`).catch(console.error);
-  }
-  if (settings.kufurEngel) {
-    const kufurKelime = [/* ... senin liste ... */];
-    if (kufurKelime.some((k) => message.content.toLowerCase().includes(k))) {
-      await message.delete().catch(() => {});
-      return message.channel.send(`${message.author}, küfür yasaktır!`).catch(console.error);
+// Reklam Engelleme
+  if (settings.reklamengel && (message.content.includes('http') || message.content.includes('www'))) {
+    try {
+      await message.delete();
+      message.channel.send(`${message.author}, reklam yapmak yasaktır!`).catch(console.error);
+    } catch (error) {
+      console.error('Reklam mesajı silinirken bir hata oluştu:', error);
     }
+    return;
   }
+
+  // Capslock Engelleme
+  if (
+    settings.capslockengel &&
+    message.content.length > 5 && // Mesaj 5 karakterden uzun olmalı
+    message.content === message.content.toUpperCase() && // Tamamen büyük harflerden oluşmalı
+    /[A-Z]/.test(message.content) // Mesajda en az bir büyük harf olmalı
+  ) {
+    try {
+      await message.delete();
+      message.channel.send(`${message.author}, lütfen tamamen büyük harf kullanmayınız!`).catch(console.error);
+    } catch (error) {
+      console.error('Capslock mesajı silinirken bir hata oluştu:', error);
+    }
+    return;
+  }
+
+  // Küfür Engelleme
+  if (settings.kufurengel) {
+    const kufurKelime = [
+      'küfür1',
+      'küfür2',
+      'küfür3',
+      'aq',
+      'amk',
+      'oe',
+      'amına',
+      'amına koyayım',
+      'siktirin',
+      'siktir',
+      'sg',
+      'orospu',
+      'ananı',
+      'babanı',
+      'bacını',
+      'karını',
+      'sikeyim',
+      'allahını',
+      'amcık',
+      'feriştah',
+      'oç',
+      'göt',
+      'amck',
+    ];
 
   // KOMUTLAR
   if (!message.content.startsWith(prefix)) return;
