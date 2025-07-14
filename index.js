@@ -1,17 +1,12 @@
-// index.js
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const {
-  Client,
-  Collection,
-  GatewayIntentBits
-} = require('discord.js');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const { prefix } = require('./config.json');
-const afk = require('./commands/afk.js'); 
-const snipes = new Map();
+const afk = require('./commands/afk.js'); // Dosya yolu doğru olmalı
+const snipes = new Map(); // Snipe için Map tanımlandı
 
-// AYARLARI OKUMA/YAZMA HELPERS
+// Ayarları JSON dosyasından okumak için bir yardımcı fonksiyon
 const loadSettings = () => {
   try {
     const data = fs.readFileSync(path.join(__dirname, 'settings.json'), 'utf8');
@@ -22,9 +17,11 @@ const loadSettings = () => {
       reklamEngel: true,
       capslockEngel: true,
       kufurEngel: true,
-    };
+    }; // Varsayılan ayarlar
   }
 };
+
+// Ayarları JSON dosyasına yazmak için bir yardımcı fonksiyon
 const saveSettings = (settings) => {
   try {
     fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 2));
@@ -33,19 +30,19 @@ const saveSettings = (settings) => {
   }
 };
 
-// BOT INTENTLERİNE GuildVoiceStates EKLENDİ
+// Discord.js istemcisi
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,  // ← Buraya eklendi
   ],
 });
 
+// Komutları tutmak için bir Collection
 client.commands = new Collection();
 
-// KOMUTLARI YÜKLE
+// Komut dosyalarını yükleme
 const commandFiles = fs
   .readdirSync(path.join(__dirname, 'commands'))
   .filter((file) => file.endsWith('.js'));
@@ -59,23 +56,31 @@ for (const file of commandFiles) {
   }
 }
 
-// “odaoluştur” komutundan export edileni import et
-const { activeVoiceRooms } = require('./commands/odaoluştur');
+client.snipes = new Map(); // snipes değişkenini client nesnesine ekle
 
-// SNIPES
-client.snipes = new Map();
+// Silinen mesajları yakalama
 client.on('messageDelete', (message) => {
-  if (message.partial) return;
+  if (message.partial) return; // Eğer mesaj cache'de değilse atla
   client.snipes.set(message.channel.id, {
     content: message.content,
     author: message.author.tag,
     timestamp: message.createdTimestamp,
     attachment: message.attachments.first()?.proxyURL || null,
   });
-  setTimeout(() => client.snipes.delete(message.channel.id), 3600000);
+
+  // “odaoluştur” komutundan export edileni import et 62
+const { activeVoiceRooms } = require('./commands/odaoluştur');
+  
+
+  // Veriyi sadece 1 saat boyunca sakla
+  setTimeout(() => client.snipes.delete(message.channel.id), 3600000); // 1 saat
 });
 
-// DOĞUM GÜNÜ KONTROLÜ
+// Bot hazır olduğunda çalıştırılacak kod
+client.once('ready', () => {
+  console.log(`${client.user.tag} başarıyla giriş yaptı!`);
+
+  // DOĞUM GÜNÜ KONTROLÜ 78
 const checkBirthdays = () => {
   const today = new Date();
   const gün = today.getDate();
@@ -96,7 +101,7 @@ const checkBirthdays = () => {
   }
 };
 
-// READY
+// READY 99
 client.once('ready', () => {
   console.log(`${client.user.tag} başarıyla giriş yaptı!`);
   checkBirthdays();
@@ -106,13 +111,15 @@ client.once('ready', () => {
   });
 });
 
-// MESSAGE CREATE
+
+// Mesajları işleme
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
+  // Güncel ayarları yükle
   const settings = loadSettings();
 
-// Reklam Engelleme
+  // Reklam Engelleme
   if (settings.reklamengel && (message.content.includes('http') || message.content.includes('www'))) {
     try {
       await message.delete();
@@ -166,31 +173,92 @@ client.on('messageCreate', async (message) => {
       'göt',
       'amck',
     ];
+    if (kufurKelime.some((kelime) => message.content.toLowerCase().includes(kelime))) {
+      try {
+        await message.delete();
+        message.channel.send(`${message.author}, küfür yasaktır!`).catch(console.error);
+      } catch (error) {
+        console.error('Küfür mesajı silinirken bir hata oluştu:', error);
+      }
+      return;
+    }
+  }
 
-  // KOMUTLAR
+  // Komutları işleme
   if (!message.content.startsWith(prefix)) return;
+
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
 
-  // özel log-channel komutu
-  if (commandName === 'log-channel') {
-    const cmd = client.commands.get('log-channel');
-    if (!cmd) return message.reply('Log-channel komutu bulunamadı!');
-    return cmd.execute(message, args);
+  // log-channel komutunu tetiklemek için gerekli kod
+if (commandName === 'log-channel') {
+  const command = client.commands.get('log-channel');
+  if (command) {
+    try {
+      await command.execute(message, args);
+    } catch (error) {
+      console.error('Log-channel komutu çalıştırılırken bir hata oluştu:', error);
+      message.reply('Log-channel komutu çalıştırılırken bir hata oluştu!').catch(console.error);
+    }
+  } else {
+    message.reply('Log-channel komutu bulunamadı!');
   }
+}
 
-  // AFK kontrolü (eğer afk.js içinde varsa)
-  afk.checkAFKStatus(client);
+// Sunucuya özel log kanalını saklayacağımız JSON dosyasının yolu
+const logChannelsPath = path.join(__dirname, 'logChannels.json');
 
-  // normal komut yürütme
+// Log kanallarını yüklemek için bir yardımcı fonksiyon
+const loadLogChannels = () => {
+  try {
+    const data = fs.readFileSync(logChannelsPath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Log kanalları dosyası yüklenirken bir hata oluştu:', error);
+    return {}; // Varsayılan olarak boş bir nesne döndür
+  }
+};
+
+// Log kanallarını kaydetmek için bir yardımcı fonksiyon
+const saveLogChannels = (logChannels) => {
+  try {
+    fs.writeFileSync(logChannelsPath, JSON.stringify(logChannels, null, 2));
+  } catch (error) {
+    console.error('Log kanalları dosyası kaydedilirken bir hata oluştu:', error);
+  }
+};
+
+// Sunucu log kanalları için global değişken
+const logChannels = loadLogChannels();
+
+// Silinen mesajları loglama
+client.on('messageDelete', async (message) => {
+  if (message.partial) return; // Eğer mesaj cache'de değilse atla
+  const guildId = message.guild?.id;
+  if (!guildId || !logChannels[guildId]) return; // Eğer log kanalı ayarlanmamışsa atla
+
+  const logChannelId = logChannels[guildId];
+  const logChannel = message.guild.channels.cache.get(logChannelId);
+  if (!logChannel) return; // Eğer log kanalı bulunamıyorsa atla
+
+  logChannel.send(`📋 Bir mesaj silindi:\n\`\`\`\n${message.content || 'Mesaj bulunamadı.'}\n\`\`\`\nGönderen: ${message.author.tag}`);
+});
+
+// Komutları yükleme
   const command = client.commands.get(commandName);
+
+    // Diğer komutları yükledikten sonra AFK olay dinleyicisini çalıştırın
+afk.checkAFKStatus(client);
+
   if (!command) return;
+ 
   try {
     await command.execute(message, args, settings, saveSettings);
-  } catch (err) {
-    console.error(`Komut çalıştırılırken hata: ${commandName}`, err);
+  } catch (error) {
+    console.error(`Komut çalıştırılırken bir hata oluştu: ${commandName}`, error);
     message.reply('Komut çalıştırılırken bir hata oluştu!').catch(console.error);
   }
+
 });
 
 // —— YENİ EKLENDİ: voiceStateUpdate ile oda silme ——  
@@ -206,11 +274,18 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
   }
 });
 
-// EXPRESS SUNUCU (uptime için)
+// Sunucu oluşturma ve proje aktivitesi sağlama.
 const app = express();
 const port = 3000;
-app.get('/', (_req, res) => res.sendStatus(200));
-app.listen(port, () => console.log(`Sunucu ${port} portunda çalışıyor.`));
 
-// BOTU BAŞLAT
-client.login(process.env.token);  // ← kendi token'ını buraya koymayı unutma!
+// Web sunucu
+app.get('/', (req, res) => {
+  res.sendStatus(200);
+});
+
+app.listen(port, () => {
+  console.log(`Sunucu ${port} numaralı bağlantı noktasında yürütülüyor.`);
+});
+
+// Botu başlatma
+client.login(process.env.token);
