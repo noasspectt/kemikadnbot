@@ -57,7 +57,7 @@ module.exports = {
     const row = new ActionRowBuilder().addComponents(acceptButton);
 
     const inviteMessage = await target.send({
-      content: `${author.user.userid} seni özel bir ses odasına davet ediyor. Kabul etmek için aşağıya tıkla.`,
+      content: `${author.user.username} seni özel bir ses odasına davet ediyor. Kabul etmek için aşağıya tıkla.`,
       components: [row],
     }).catch(() => {
       message.channel.send('⚠️ Kullanıcıya mesaj gönderilemedi.');
