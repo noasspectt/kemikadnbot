@@ -90,7 +90,7 @@ const checkBirthdays = () => {
   for (const userId in birthdays) {
     const [dgün, day] = birthdays[userId].split('.');
     if (parseInt(dgün) === gün && parseInt(day) === ay) {
-      const kanal = client.channels.cache.get('1042439195450429452');
+      const kanal = client.channels.cache.get('1392630423216980099');
       if (kanal) kanal.send(`🎉 Bugün <@${userId}> doğmuş! İyi ki doğdun! 🥳`);
     }
   }
