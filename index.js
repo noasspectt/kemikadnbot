@@ -191,7 +191,7 @@ client.on('messageCreate', async (message) => {
     console.error(`Komut çalıştırılırken hata: ${commandName}`, err);
     message.reply('Komut çalıştırılırken bir hata oluştu!').catch(console.error);
   }
-});
+};
 
 // —— YENİ EKLENDİ: voiceStateUpdate ile oda silme ——  
 client.on('voiceStateUpdate', async (oldState, newState) => {
