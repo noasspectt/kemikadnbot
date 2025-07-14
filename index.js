@@ -75,10 +75,37 @@ client.on('messageDelete', (message) => {
 // Bot hazır olduğunda çalıştırılacak kod
 client.once('ready', () => {
   console.log(`${client.user.tag} başarıyla giriş yaptı!`);
+ checkBirthdays();
+  
+  // “odaoluştur” komutundan export edileni import et 62
+const { activeVoiceRooms } = require('./commands/odaoluştur');
+
+  // DOĞUM GÜNÜ KONTROLÜ 78
+const checkBirthdays = () => {
+  const today = new Date();
+  const gün = today.getDate();
+  const ay = today.getMonth() + 1;
+  let birthdays = {};
+  try {
+    birthdays = JSON.parse(fs.readFileSync(path.join(__dirname, 'birthdays.json'), 'utf8'));
+  } catch (error) {
+    console.error('Doğum günü verisi yüklenemedi:', error);
+    return;
+  }
+  for (const userId in birthdays) {
+    const [dgün, day] = birthdays[userId].split('.');
+    if (parseInt(dgün) === gün && parseInt(day) === ay) {
+      const kanal = client.channels.cache.get('1392630423216980099');
+      if (kanal) kanal.send(`🎉 Bugün <@${userId}> doğmuş! İyi ki doğdun! 🥳`);
+    }
+  }
+};
+
 
   // Botun durumunu ayarla
   client.user.setPresence({
     activities: [{ name: '!yardım', type: 2 }], // type: 0 -> Playing
+    
     status: 'online', // "dnd" -> Rahatsız Etmeyin
   });
 });
@@ -230,6 +257,19 @@ afk.checkAFKStatus(client);
     message.reply('Komut çalıştırılırken bir hata oluştu!').catch(console.error);
   }
 
+});
+
+// —— YENİ EKLENDİ: voiceStateUpdate ile oda silme ——  
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  const userId = oldState.member.id;
+  const roomId = activeVoiceRooms.get(userId);
+  if (!roomId) return;
+  // Eğer oda sahibinin eski kanalı bizim kanalımızsa
+  if (oldState.channelId === roomId && newState.channelId !== roomId) {
+    const ch = oldState.guild.channels.cache.get(roomId);
+    if (ch) await ch.delete().catch(console.error);
+    activeVoiceRooms.delete(userId);
+  }
 });
 
 // Sunucu oluşturma ve proje aktivitesi sağlama.
